@@ -314,6 +314,19 @@ function requestDietInfo() {
   vdata.weight = document.getElementById("ipf-weight").value;
   vdata.activityLev = document.getElementById("ipf-ex-amt").value;
   vdata.goal = document.getElementById("ipf-goal").value;
+
+  //start hack
+  var data = backendHandle(vdata);
+  dietInfo.bmi = data.bmi;
+  dietInfo.bmr = data.bmr;
+  dietInfo.calGoal = data.calGoal;
+  dietInfo.goal = data.goal;
+  dietInfo.foods = data.foods;
+  dietInfo.fitnessrecord_1 = data.fitnessrecord_1;
+  dietInfo.fitnessrecord_2 = data.fitnessrecord_2;
+  updateDietInfoDisplays();
+
+  /*
   $.ajax({
     type: "GET",
     url: actionUrl,
@@ -330,7 +343,7 @@ function requestDietInfo() {
       dietInfo.fitnessrecord_2 = data.fitnessrecord_2;
       updateDietInfoDisplays();
     }
-  });
+  });*/
 }
 
 
