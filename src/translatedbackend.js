@@ -37,34 +37,35 @@ function getCalGoal(calNeeds, goal){
     }
 }
 
-function user_fitness(goal){
+function user_fitness(goal, training){
     if (goal == 'Lose Weight'){
         matching_record_wg = training.filter(record => record[1] == "T");
-        record = random.sample(matching_record_wg,2)
+        record = [matching_record_wg[Math.floor(Math.random()*matching_record_wg.length)], matching_record_wg[Math.floor(Math.random()*matching_record_wg.length)]];
         return record;
     } else if (goal == 'Gain Weight'){
         matching_record_wl = training.filter(record => record[2] == "T");
-        record = random.sample(matching_record_wl,2)
+
+        record = [matching_record_wl[Math.floor(Math.random()*matching_record_wl.length)], matching_record_wl[Math.floor(Math.random()*matching_record_wl.length)]];
         return record;
     } else { 
         matching_record_mw = training.filter(record => record[3] == "T");
-        record = random.sample(matching_record_mw,2)
+        record = [matching_record_mw[Math.floor(Math.random()*matching_record_mw.length)], matching_record_mw[Math.floor(Math.random()*matching_record_mw.length)]];
         return record;
     }
 }
 
 function find_closest_combo(target, list1, list2, list3){
-    closest_sum = float(Number.MAX_VALUE);
-    closest_combo = None
+    closest_sum = parseFloat(Number.MAX_VALUE);
+    closest_combo = [];
     for(var i=0; i<list1.length; i++){
         for(var j=0; j<list2.length; j++){
             for(var k=0; k<list3.length; k++){
-                if (int(list2[j][1]) >= int(list3[k][1])){
-                    combo_sum = int(list1[i][1]) + int(list2[j][1]) + int(list3[k][1])
-                    combo_std = (abs(int(list1[i][1]) - (combo_sum/3))
-                        + abs(int(list2[j][1]) - (combo_sum/3))
-                        + abs(int(list3[k][1]) - (combo_sum/3)))/3
-                    if (abs(target - combo_sum) < abs(target - closest_sum) && combo_std < 200){
+                if (parseInt(list2[j][1]) >= parseInt(list3[k][1])){
+                    combo_sum = parseInt(list1[i][1]) + parseInt(list2[j][1]) + parseInt(list3[k][1])
+                    combo_std = (Math.abs(parseInt(list1[i][1]) - (combo_sum/3))
+                        + Math.abs(parseInt(list2[j][1]) - (combo_sum/3))
+                        + Math.abs(parseInt(list3[k][1]) - (combo_sum/3)))/3
+                    if (Math.abs(target - combo_sum) < Math.abs(target - closest_sum) && combo_std < 200){
                         closest_sum = combo_sum
                         closest_combo = [list1[i], list2[j], list3[k]]
                     }
@@ -160,18 +161,18 @@ function backendHandle(reqJson){
     lList.sort( () => .5 - Math.random() );
     dList.sort( () => .5 - Math.random() );
 
-    var age = float(reqJson['age']);
-    var height = float(reqJson['height']);
-    var weight = float(reqJson['weight']);
+    var age = parseFloat(reqJson['age']);
+    var height = parseFloat(reqJson['height']);
+    var weight = parseFloat(reqJson['weight']);
     var gender = reqJson['gender'];
-    var activityLev = float(reqJson['activityLev']);
+    var activityLev = parseFloat(reqJson['activityLev']);
     var goal = reqJson['goal'];
 
     var bmi = getBmi(weight, height);
     var bmr = getBmr(gender, weight, height, age);
     var calNeeds = getCalNeeds(activityLev, bmr);
     var calGoal = getCalGoal(calNeeds, goal);
-    var fitnessrecord = user_fitness(goal);
+    var fitnessrecord = user_fitness(goal, training);
 
     selFoods = find_closest_combo(calGoal, bList, lList, dList) 
 
