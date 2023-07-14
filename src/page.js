@@ -304,7 +304,7 @@ function updateDietInfoDisplays() {
 
 //URL for API requests
 var actionUrl =
-  'https://PATH_TO_BACKEND_CALC_HERE'
+  'backend/backendCode.py'
 
 function requestDietInfo() {
   var vdata = {};
