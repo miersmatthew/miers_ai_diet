@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link href=https://tomhodgins.github.io/preset/preset.css rel=stylesheet>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
+    <style>
+        div {
+            outline: 1px solid black;
+            text-align: center;
+            overflow: auto;
+        }
+        .chart-display {
+            height:100%;
+            width:100%;
+        }
+        .top-section{
+            height:40%
+        }
+        .bottom-section{
+            height:60%;
+            padding:1em;
+        }
+        div.left-half {
+            width: 50%;
+            float: left;
+            height:55%;
+        }
+        div.right-half {
+            width: 50%;
+            float: right;
+            height:55%;
+        }
+        .button {
+            width:100%;
+            display:block;
+            font-size: 2em;
+            height: 15%;
+        }
+        div.top-header{
+            width:100%;
+            height: 30%;
+        }
+        form {
+            height:100%;
+            width:100%;
+        }
+        #dim-screen
+        {
+            position:fixed;
+            padding:0;
+            margin:0;
+            top:0;
+            left:0;
+            width: 100%;
+            height: 100%;
+            background:rgba(255,255,255,0.5);
+        }
+    </style>
+</head>
+<body>
+<div id='dim-screen'>
+    <div class="top-section">
+        <form id="ret-scenario-form">
+        <div class="top-header">
+            <h1>Mini Monte Carlo Machine</h1>
+            <label for="scenario-name">Scenario Name:</label>
+            <input type="text" id="scenario-name" name="scenario-name" value="Retirement Plan">
+        </div>
+        <div class="left-half">
+            <h2>Personal Info:</h2>
+            <label for="client-name">Client Name:</label>
+            <input type="text" id="client-name" name="client-name" value="Matt"><br>
+            <label for="client-age">Client Age:</label>
+            <input type="number" id="client-age" name="client-age" value=25><br>
+            <label for="income">Current Income:</label>
+            <input type="number" id="income" name="income" value=48000><br>
+            <label for="month-contrib">Monthly Investment Contribution:</label>
+            <input type="number" id="month-contrib" name="month-contrib" value=200><br>
+            <label for="savings-rate">Savings Rate (%):</label>
+            <input type="number" id="savings-rate" name="month-contrib" value=5 disabled>    
+        </div>
+        <div class="right-half">
+            <h2>Investment Info:</h2>
+            <label for="inflation-rate">Expected Inflation Rate (%):</label>
+            <input type="number" id="inflation-rate" name="inflation-rate" value=3><br>
+            <label for="current-savings">Current Saved Amount:</label>
+            <input type="number" id="current-savings" name="current-savings" value=10000><br>
+            <label for="stock-pct-slider">Bond/Stock Alocation:</label>
+            <input type="range" min="0" max="100" value="50" step="5" class="slider" id="stock-pct-slider" name="stock-pct-slider"><br>
+            <label for="bond-pct">Bond/Stock (%):</label>
+            <input type="text" id="bond-pct" name="bond-pct" value="50/50" disabled><br>
+            <label for="early-drawdown">Expenses 65-80 (% of income):</label>
+            <input type="number" id="early-drawdown" name="early-drawdown" value=70><br>
+            <label for="late-drawdown">Expenses 80+ (% of income):</label>
+            <input type="number" id="late-drawdown" name="late-drawdown" value=50><br>
+        </div>
+        <input type="submit" class="button" value="Model">
+        </form>
+
+    </div>
+
+    <div class="bottom-section">
+        <canvas class="chart-display" id="myChart"></canvas>
+    </div>
+
+</div>
+
+</body>
+<script>
+
+// BEGIN FORM FUNCTIONALITY
+function updateSavingsRate(){
+    var sRateObj = document.getElementById('savings-rate');
+    var income = document.getElementById('income').value;
+    var anualContrib = document.getElementById('month-contrib').value*12;
+    var sRate = anualContrib / income * 100;
+    sRateObj.setAttribute("value", sRate);
+}
+$("#income").change(function(e){
+    updateSavingsRate();
+});
+$("#month-contrib").change(function(e){
+  updateSavingsRate();
+});
+$("#stock-pct-slider").change(function(e){
+    var sPct = document.getElementById('stock-pct-slider').value;
+    var bDisp = document.getElementById('bond-pct');
+    bDisp.setAttribute("value", `${100-sPct}/${sPct}`);
+});
+// END FORM FUNCTIONALITY
+
+// BEGIN CHART SETUP
+var myChart = new Chart("myChart", {
+    type: "line",
+    data: {},
+    options: {
+        title: {
+            display: true
+        },
+        maintainAspectRatio: false,
+        tooltips: {
+            callbacks: {
+                label: (tooltipItem, data) => {
+                    var label = data.datasets[tooltipItem.datasetIndex].label || '';
+                    return label + ' ' + (Math.round(tooltipItem.yLabel * 100) / 100).toFixed(2);
+                }
+            }
+        }
+    }
+});
+var chartColors=[
+    'rgb(178,34,34)',
+    'rgb(255,165,0)',
+    'rgb(255,255,0)',
+    'rgb(154,205,50)',
+    'rgb(34,139,34)'];
+function removeData(chart) {
+    chart.data.labels.pop();
+    chart.data.datasets.forEach((dataset) => {
+        dataset.data.pop();
+    });
+    chart.update();
+}
+function addData(chart, data) {
+    chart.data.labels = data.labels;
+    chart.data.datasets = data.datasets;
+    chart.update();
+}
+// END CHART SETUP
+
+//callback to update chart
+function populateChart(json){
+    var data = {labels: [],
+        datasets: []};
+    var ages = [];
+    var bals = [];
+    json.simulations.sort((a, b) => (a.length > b.length ||
+        (a.length == b.length && a[a.length-1].bal > b[b.length-1].bal)) ? 1 : -1);
+    for(var s in json.simulations){
+        if(json.simulations[s].length > ages.length){
+            ages = [];
+            for(var i in json.simulations[s]){
+                ages.push(json.simulations[s][i].age);
+            }
+            data.labels = ages;
+        }
+        var cBal = []
+        for(var i in json.simulations[s]){
+            cBal.push(json.simulations[s][i].bal);
+        }
+        bals.push(cBal)
+        data.datasets.push({label: `Run ${parseInt(s)+1}/${json.simulations.length}`,
+            data: cBal,
+            fill: false,
+            borderColor: chartColors[parseInt(s)]});
+    }
+    removeData(myChart);
+    myChart.options.title.text = `${document.getElementById('client-name').value}\
+'s ${document.getElementById('scenario-name').value}`
+    addData(myChart, data);
+}
+
+
+
+
+
+/* begin translated backend */
+function convertToTodayDollars(amt, infRate, yrs){
+    var growthFactor = Math.pow((1+infRate), yrs);
+    return amt/growthFactor;
+}
+function convertToFutureDollars(amt, infRate, yrs){
+    var growthFactor = Math.pow((1+infRate), yrs);
+    return amt*growthFactor;
+}
+
+function updateInvestmentTotal(amt, expenses, income, ror){
+    return (amt-expenses)*(1+ror)+income;
+}
+
+var spReturns=[
+ -19.44, 26.89, 16.26, 28.88, -6.24, 
+  19.42,  9.54, -0.73, 11.39, 29.60,
+  13.41,  0.00, 12.78, 23.45,-38.49,
+   3.53, 13.62,  3.00,  8.99, 26.38,
+ -23.37,-13.04,-10.14, 19.53, 26.67,
+  31.01, 20.26, 34.11, -1.54,  7.06,
+   4.46, 26.31, -6.56, 27.25, 12.40,
+   2.03, 14.62, 26.33,  1.40, 17.27,
+  14.76, -9.73, 25.77, 12.31,  1.06,
+ -11.50, 19.15, 31.55,-29.72,-17.37,
+  15.63, 10.79,  0.10,-11.36,  7.66,
+  20.09,-13.09,  9.06, 12.97, 18.89,
+ -11.81, 23.13, -2.97,  8.48, 38.06,
+ -14.31,  2.62, 26.40, 45.02, -6.62,
+  11.78, 16.46, 21.78, 10.26, -0.65,
+   0.00,-11.87, 30.72, 13.80, 19.45,
+  12.43,-17.86,-15.29, -5.45, 25.21,
+ -38.59, 27.92, 41.37, -5.94, 46.59,
+ -15.15,-47.07,-28.48,-11.91, 37.88];
+
+function handleCalc(scenario){
+    let curAge = 0;
+    let curSaved = 0;
+    let stockPct = 0;
+    let cIncome = 0;
+    let mContrib = 0;
+    let infRate = 0;
+    let pctIncEarly = 0;
+    let pctIncLate = 0;
+
+    //var curAge = 25;
+    //var curSaved = 10000;
+    //var avgRor = 0.05;
+    //var cIncome = 50000;
+    //var mContrib = 200;
+    //var infRate = 0.02;
+    //var pctIncEarly = 0.7;
+    //var pctIncLate = 0.5;
+
+    let responseCode = 200;
+    console.log("request: " + JSON.stringify(event));
+    
+    if (scenario && scenario.curAge) {
+        console.log("Received curAge: " + scenario.curAge);
+        curAge = parseFloat(scenario.curAge);
+    }
+    if (scenario && scenario.curSaved) {
+        console.log("Received curSaved: " + scenario.curSaved);
+        curSaved = parseFloat(scenario.curSaved);
+    }
+    if (scenario && scenario.stockPct) {
+        console.log("Received stockPct: " + scenario.stockPct);
+        stockPct = parseFloat(scenario.stockPct);
+    }
+    if (scenario && scenario.cIncome) {
+        console.log("Received cIncome: " + scenario.cIncome);
+        cIncome = parseFloat(scenario.cIncome);
+    }
+    if (scenario && scenario.mContrib) {
+        console.log("Received mContrib: " + scenario.mContrib);
+        mContrib = parseFloat(scenario.mContrib);
+    }
+    if (scenario && scenario.infRate) {
+        console.log("Received infRate: " + scenario.infRate);
+        infRate = parseFloat(scenario.infRate);
+    }
+    if (scenario && scenario.pctIncEarly) {
+        console.log("Received pctIncEarly: " + scenario.pctIncEarly);
+        pctIncEarly = parseFloat(scenario.pctIncEarly);
+    }
+    if (scenario && scenario.pctIncLate) {
+        console.log("Received pctIncLate: " + scenario.pctIncLate);
+        pctIncLate = parseFloat(scenario.pctIncLate);
+    }
+    
+
+    var ret = {"simulations": []};
+    ret.inputRecieved = {
+        "curAge" : curAge,
+        "curSaved" : curSaved,
+        "stockPct" : stockPct,
+        "cIncome" : cIncome,
+        "mContrib" : mContrib,
+        "infRate" : infRate,
+        "pctIncEarly" : pctIncEarly,
+        "pctIncLate" : pctIncLate
+    };
+
+    var earlyExpense = cIncome*pctIncEarly;
+    var lateExpense = cIncome*pctIncLate;
+    var bal;
+    var age;
+    var yearsPassed;
+
+    for (let i = 0; i < 5; i++) {
+        var curSim = []
+        bal = curSaved;
+        age = curAge;
+        yearsPassed = 0;
+        while (bal >= 0 && age <= 90){
+            var yInfo = {}
+            yInfo.age = age;
+            yInfo.bal = bal;
+            //console.log(`${age} - ${bal}`);
+            
+            age += 1;
+
+            var stockRet = spReturns[Math.floor(Math.random() * spReturns.length)]/100;
+
+            var curReturn = stockRet*stockPct+infRate*(1-stockPct);
+
+            if (age < 65){
+                bal = updateInvestmentTotal(bal, 
+                    0, 
+                    convertToFutureDollars(mContrib*12, infRate, yearsPassed),
+                    curReturn);
+            } else if (age < 85){
+                bal = updateInvestmentTotal(bal, 
+                    convertToFutureDollars(earlyExpense, infRate, yearsPassed),
+                    0, 
+                    curReturn);
+            } else {
+                bal = updateInvestmentTotal(bal, 
+                    convertToFutureDollars(lateExpense, infRate, yearsPassed),
+                    0, 
+                    curReturn);
+            }
+            yearsPassed += 1;
+            
+            curSim.push(yInfo);
+            
+            if (bal <= 0){
+                curSim.push({"age":age+1,"bal":0})
+            }
+        }
+        ret.simulations.push(curSim) 
+    }
+    //console.log('finished');
+    //console.log(ret);
+
+    return ret;
+
+    /*let responseBody = {
+        message: ret,
+        input: event
+    };
+    
+    // The output from a Lambda proxy integration must be 
+    // in the following JSON object. The 'headers' property 
+    // is for custom response headers in addition to standard 
+    // ones. The 'body' property  must be a JSON string. For 
+    // base64-encoded payload, you must also set the 'isBase64Encoded'
+    // property to 'true'.
+    let response = {
+        statusCode: responseCode,
+        headers: {
+            "Access-Control-Allow-Headers" : "Content-Type",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "OPTIONS,POST,GET",
+            "x-custom-header" : "my custom header value"
+        },
+        body: JSON.stringify(responseBody)
+    };
+    console.log("response: " + JSON.stringify(response))
+    return response;*/
+}
+
+/* end translated backend */
+
+
+
+//URL for API requests
+//var mCalcUrl = "AWS_LAMBDA_URL_HERE"
+
+//API call to backend
+$(document).ready(function(){
+  // id of the main
+  /*$("#ret-scenario-form").submit(function(e) {
+      e.preventDefault(); // avoid to execute the actual submit of the form.
+      var form = $(this);
+      var actionUrl = mCalcUrl;
+      //building up the json for each request
+      var vdata = {};
+      vdata.curAge = document.getElementById("client-age").value;
+      vdata.curSaved = document.getElementById("current-savings").value;
+      vdata.stockPct = document.getElementById("stock-pct-slider").value/100;
+      vdata.cIncome = document.getElementById("income").value;
+      vdata.mContrib = document.getElementById("month-contrib").value;
+      vdata.infRate = document.getElementById("inflation-rate").value/100;
+      vdata.pctIncEarly = document.getElementById("early-drawdown").value/100;
+      vdata.pctIncLate = document.getElementById("late-drawdown").value/100;
+    $.ajax({
+        type: "GET",
+        url: actionUrl,
+        data: vdata,
+        crossDomain: true,
+        dataType: 'json',
+        success: function(data)
+        {
+        populateChart(data.message);
+        }}); 
+  });*/
+
+  $("#ret-scenario-form").submit(function(e) {
+      e.preventDefault(); // avoid to execute the actual submit of the form.
+      var form = $(this);
+      //building up the json for each request
+      var vdata = {};
+      vdata.curAge = document.getElementById("client-age").value;
+      vdata.curSaved = document.getElementById("current-savings").value;
+      vdata.stockPct = document.getElementById("stock-pct-slider").value/100;
+      vdata.cIncome = document.getElementById("income").value;
+      vdata.mContrib = document.getElementById("month-contrib").value;
+      vdata.infRate = document.getElementById("inflation-rate").value/100;
+      vdata.pctIncEarly = document.getElementById("early-drawdown").value/100;
+      vdata.pctIncLate = document.getElementById("late-drawdown").value/100;
+      populateChart(handleCalc(vdata));
+  });
+});
+</script>
+</html>

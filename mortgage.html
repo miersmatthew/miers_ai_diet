@@ -1,0 +1,526 @@
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head>
+  <link href=https://tomhodgins.github.io/preset/preset.css rel=stylesheet>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+  <title>Phase1</title>
+  <style> 
+    div {
+      outline: 1px solid black;
+      text-align: center;
+      overflow: auto;
+    }
+    div.left-half {
+      width: 50%;
+      float: left;
+    }
+    div.right-half {
+      width: 50%;
+      float: right;
+    }
+    .button {
+        width:100%;
+        display:block;
+        font-size: 2em;
+    }
+    form {
+      margin: 0;
+      padding: 0; 
+    }
+    .padded {
+        padding: 1em;
+        text-align: right;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    td, th {
+      border: 1px solid #ddd;
+      padding: .5em;
+    }
+    tr:nth-child(even){background-color: #f2f2f2;}
+    tr:hover {background-color: #ddd;}
+    th {
+      padding-top: 1em;
+      padding-bottom: 1em;
+      text-align: left;
+      background-color: #777;
+      color: white;
+    }
+    .collapsible {
+      background-color: #777;
+      color: white;
+      cursor: pointer;
+      padding: 1em;
+      width: 100%;
+      border: none;
+      text-align: left;
+      outline: none;
+      font-size: 1.5em;
+    }
+    .active, .collapsible:hover {
+      background-color: #555;
+    }
+    .content {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <h1>Mortgage Scenario Comparison</h1>
+    <form id="scenarios-form">
+    <label for="name">Name:</label>
+    <input type="text" id="name" name="name" value="Matt">
+    <br><br>
+    <div class="left-half">
+      <div class="padded">
+        <h2>Scenario 1:</h2>
+        <label for="down-payment-amt-1">Down payment amount:</label>
+        <input type="number" id="down-payment-amt-1" name="down-payment-amt-1" value="50000"><br>
+        <label for="down-payment-pct-1">Down payment percent (0-100):</label>
+        <input type="number" id="down-payment-pct-1" name="down-payment-pct-1" value="20"><br>
+        <label for="original-amt-1">Original amount (Including down payment):</label>
+        <input type="number" id="original-amt-1" name="original-amt-1" value="250000"><br>
+        <label for="interest-rate-1">Interest rate (percent):</label>
+        <input type="number" id="interest-rate-1" name="interest-rate-1" value="5"><br>
+        <label for="loan-duration-1">Loan duration (years):</label>
+        <input type="number" id="loan-duration-1" name="loan-duration-1" value="30"><br>
+        <label for="additional-paynemt-1">Additional payment (monthly):</label>
+        <input type="number" id="additional-paynemt-1" name="additional-paynemt-1" value="0"><br>
+      </div>
+    </div>
+    <div class="right-half">
+      <div class="padded">
+        <h2>Scenario 2:</h2>
+        <label for="down-payment-amt-2">Down payment amount:</label>
+        <input type="number" id="down-payment-amt-2" name="down-payment-amt-2" value="50000"><br>
+        <label for="down-payment-pct-2">Down payment percent (0-100):</label>
+        <input type="number" id="down-payment-pct-2" name="down-payment-pct-2" value="20"><br>
+        <label for="original-amt-2">Original amount (Including down payment):</label>
+        <input type="number" id="original-amt-2" name="original-amt-2" value="250000"><br>
+        <label for="interest-rate-2">Interest rate (percent):</label>
+        <input type="number" id="interest-rate-2" name="interest-rate-2" value="5"><br>
+        <label for="loan-duration-2">Loan duration (years):</label>
+        <input type="number" id="loan-duration-2" name="loan-duration-2" value="30"><br>
+        <label for="additional-paynemt-2">Additional payment (monthly):</label>
+        <input type="number" id="additional-paynemt-2" name="additional-paynemt-2" value="100"><br>
+      </div>
+    </div>
+    <input type="submit" class="button" value="Compare Scenarios">
+    </form>
+  </div>
+  <br>
+  <div id='results-report' style="visibility: hidden">
+    <div>
+      <div>
+        <h2 id="report-title"></h2>
+        <p id="compare-total"></p>
+        <p id="compare-time"></p>
+      </div>
+      <div class="left-half">
+        <div class="padded">
+          <h3>Scenario 1</h3>
+          <label for="total-payed-1">Total payed:</label>
+          <p id="total-payed-1" style="display: inline;"></p><br>
+          <label for="monthly-payment-1">Monthly payment:</label>
+          <p id="monthly-payment-1" style="display: inline;"></p><br>
+          <label for="years-to-pay-1">Years to pay:</label>
+          <p id="years-to-pay-1" style="display: inline;"></p><br><br>
+          <button type="button" class="collapsible">Toggle amortization table</button>
+          <div class="content">
+            <table style="display: inline;">
+              <thead>
+                <tr>
+                  <th>Year</th>
+                  <th>Month 1</th>
+                  <th>Month 2</th>
+                  <th>Month 3</th>
+                  <th>Month 4</th>
+                  <th>Month 5</th>
+                  <th>Month 6</th>
+                  <th>Month 7</th>
+                  <th>Month 8</th>
+                  <th>Month 9</th>
+                  <th>Month 10</th>
+                  <th>Month 11</th>
+                  <th>Month 12</th>
+                </tr>
+              </thead>
+              <tbody id="amortization-table-1"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="right-half">
+        <div class="padded">
+          <h3>Scenario 2</h3>
+          <label for="total-payed-2">Total payed:</label>
+          <p id="total-payed-2" style="display: inline;"></p><br>
+          <label for="monthly-payment-2">Monthly payment:</label>
+          <p id="monthly-payment-2" style="display: inline;"></p><br>
+          <label for="years-to-pay-2">Years to pay:</label>
+          <p id="years-to-pay-2" style="display: inline;"></p><br><br>
+          <button type="button" class="collapsible">Toggle amortization table</button>
+          <div class="content">
+            <table style="display: inline;">
+              <thead>
+                <tr>
+                  <th>Year</th>
+                  <th>Month 1</th>
+                  <th>Month 2</th>
+                  <th>Month 3</th>
+                  <th>Month 4</th>
+                  <th>Month 5</th>
+                  <th>Month 6</th>
+                  <th>Month 7</th>
+                  <th>Month 8</th>
+                  <th>Month 9</th>
+                  <th>Month 10</th>
+                  <th>Month 11</th>
+                  <th>Month 12</th>
+                </tr>
+              </thead>
+              <tbody id="amortization-table-2"></tbody>
+            </table><br>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+<script>
+
+//setting up collapsable table
+//source: w3schools
+var coll = document.getElementsByClassName("collapsible");
+var i;
+
+for (i = 0; i < coll.length; i++) {
+  coll[i].addEventListener("click", function() {
+    this.classList.toggle("active");
+    var content = this.nextElementSibling;
+    if (content.style.display === "block") {
+      content.style.display = "none";
+    } else {
+      content.style.display = "block";
+    }
+  });
+}
+
+//storage for calculation responses
+var msgJson1; 
+var msgJson2;
+
+//URL for calculator API requests
+var mCalcUrl = 
+  'https://uv5jmu7ar6.execute-api.us-east-2.amazonaws.com/beta/mortgagecalc'
+
+//Updates the given table element, based on the calculation results
+function updateTable(element, msgJson){
+  element.innerHTML = '';
+  var step=12;
+  for (let i = 0; i < msgJson.months.length; i+=step) {
+    var rowNode = document.createElement("tr");
+    var cellNode = document.createElement("td");
+    var textNode = document.createTextNode((i/step) + 1);
+    cellNode.appendChild(textNode);
+    rowNode.appendChild(cellNode);
+    for (let j = 0; j < step; j++) {
+      if(i+j < msgJson.months.length){
+        var cellNode = document.createElement("td");
+        var textNode = document.createTextNode(
+          msgJson.months[i+j].toLocaleString(
+            undefined, 
+            {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            }
+          )
+        );
+        cellNode.appendChild(textNode);
+        rowNode.appendChild(cellNode);
+      }
+    }
+    element.appendChild(rowNode);
+  }
+}
+
+//Updates the given total payment element
+function uptateTotalPayed(element, msgJson){
+  element.innerHTML = msgJson.totalPay.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
+//Updates the given monthly payment element
+function uptateMonthlyPayment(element, msgJson){
+  element.innerHTML = msgJson.monthlyPmt.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
+//Updates the given years to pay element
+function updateYearsToPay(element, msgJson){
+  var resp = "";
+  if (msgJson.months.length > 12){
+    resp += `${Math.floor(msgJson.months.length/12).toLocaleString()} Years `
+  }
+  if (msgJson.months.length % 12 != 0){
+    resp += `${(msgJson.months.length % 12).toLocaleString()} Months`
+  }
+  element.innerHTML = resp;
+}
+
+//Callback for the scenario1 calculation request
+function processInfo1(message){
+  var msgJson = JSON.parse(message);
+  msgJson1 = msgJson;
+  var table1 = document.getElementById("amortization-table-1");
+  var totalPayed1 = document.getElementById("total-payed-1");
+  var monthlyPayment1 = document.getElementById("monthly-payment-1");
+  var yearsToPay1 = document.getElementById("years-to-pay-1");
+
+  updateTable(table1, msgJson);
+  uptateTotalPayed(totalPayed1, msgJson);
+  uptateMonthlyPayment(monthlyPayment1, msgJson);
+  updateYearsToPay(yearsToPay1, msgJson);
+}
+
+//Callback for the scenario2 calculation request
+function processInfo2(message){
+  var msgJson = JSON.parse(message);
+  msgJson2 = msgJson;
+  var table1 = document.getElementById("amortization-table-2");
+  var totalPayed1 = document.getElementById("total-payed-2");
+  var monthlyPayment1 = document.getElementById("monthly-payment-2");
+  var yearsToPay1 = document.getElementById("years-to-pay-2");
+
+  updateTable(table1, msgJson);
+  uptateTotalPayed(totalPayed1, msgJson);
+  uptateMonthlyPayment(monthlyPayment1, msgJson);
+  updateYearsToPay(yearsToPay1, msgJson);
+}
+
+//Callback for when both scenarios have returned
+function compareScenarios(){
+
+  //make the entire results section visible
+  var resultsReport = document.getElementById('results-report');
+  resultsReport.style.visibility='visible'
+
+  //update the comparison components of the webpage
+  var reportTitle = document.getElementById('report-title');
+  var inputName = document.getElementById('name');
+  reportTitle.innerHTML = `${inputName.value}'s Results:`;
+
+  var totalCompare = document.getElementById('compare-total');
+  if (msgJson1.totalPay > msgJson2.totalPay){
+    totalCompare.innerHTML = `Scenario 2 saves $\
+      ${(msgJson1.totalPay - msgJson2.totalPay).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      })}.`;
+  }
+  else if (msgJson1.totalPay < msgJson2.totalPay){
+    totalCompare.innerHTML = `Scenario 1 saves $\
+      ${(msgJson2.totalPay - msgJson1.totalPay).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      })}.`;
+  }
+  else {
+    totalCompare.innerHTML = `Both scenarios cost the same.`;
+  }
+
+  var timeCompare = document.getElementById('compare-time');
+  if (msgJson1.months.length > msgJson2.months.length){
+    timeCompare.innerHTML = `Scenario 2 finishes \
+      ${(msgJson1.months.length-msgJson2.months.length).toLocaleString()} \
+      month(s) sooner.`;
+  }
+  else if (msgJson1.months.length < msgJson2.months.length){
+    timeCompare.innerHTML = `Scenario 1 finishes \
+      ${(msgJson2.months.length-msgJson1.months.length).toLocaleString()} \
+      month(s) sooner.`;
+  }
+  else {
+    timeCompare.innerHTML = `Both scenarios pay in the same time.`;
+  }
+}
+
+//Dynamic updating of down payment amount and percent
+$("#down-payment-amt-1").change(function(e){
+  var amtDown = document.getElementById('down-payment-amt-1');
+  var pctDown = document.getElementById('down-payment-pct-1');
+  var totalAmt = document.getElementById('original-amt-1');
+  pctDown.value = amtDown.value/totalAmt.value*100;
+});
+$("#down-payment-pct-1").change(function(e){
+  var amtDown = document.getElementById('down-payment-amt-1');
+  var pctDown = document.getElementById('down-payment-pct-1');
+  var totalAmt = document.getElementById('original-amt-1');
+  amtDown.value = totalAmt.value*pctDown.value/100;
+});
+$("#original-amt-1").change(function(e){
+  var amtDown = document.getElementById('down-payment-amt-1');
+  var pctDown = document.getElementById('down-payment-pct-1');
+  var totalAmt = document.getElementById('original-amt-1');
+  pctDown.value = amtDown.value/totalAmt.value*100;
+});
+$("#down-payment-amt-2").change(function(e){
+  var amtDown = document.getElementById('down-payment-amt-2');
+  var pctDown = document.getElementById('down-payment-pct-2');
+  var totalAmt = document.getElementById('original-amt-2');
+  pctDown.value = amtDown.value/totalAmt.value*100;
+});
+$("#down-payment-pct-2").change(function(e){
+  var amtDown = document.getElementById('down-payment-amt-2');
+  var pctDown = document.getElementById('down-payment-pct-2');
+  var totalAmt = document.getElementById('original-amt-2');
+  amtDown.value = totalAmt.value*pctDown.value/100;
+});
+$("#original-amt-2").change(function(e){
+  var amtDown = document.getElementById('down-payment-amt-2');
+  var pctDown = document.getElementById('down-payment-pct-2');
+  var totalAmt = document.getElementById('original-amt-2');
+  pctDown.value = amtDown.value/totalAmt.value*100;
+});
+
+
+$(document).ready(function(){
+  // id of the main
+  $("#scenarios-form").submit(function(e) {
+      e.preventDefault(); // avoid to execute the actual submit of the form.
+      var form = $(this);
+      var actionUrl = mCalcUrl;
+
+      //building up the json for each request
+      var vdata1 = {};
+      vdata1.bal = 
+        document.getElementById("original-amt-1").value 
+        - document.getElementById("down-payment-amt-1").value;
+      vdata1.term = 
+        document.getElementById("loan-duration-1").value;
+      vdata1.interestRate = 
+        document.getElementById("interest-rate-1").value/100;
+      vdata1.additionalPmt = 
+        document.getElementById("additional-paynemt-1").value;
+
+      var vdata2 = {};
+      vdata2.bal = 
+        document.getElementById("original-amt-2").value 
+        - document.getElementById("down-payment-amt-2").value;
+      vdata2.term = 
+        document.getElementById("loan-duration-2").value;
+      vdata2.interestRate = 
+        document.getElementById("interest-rate-2").value/100;
+      vdata2.additionalPmt = 
+        document.getElementById("additional-paynemt-2").value;
+
+      //kick off requests, and set callback when they finish
+      $.when(
+        $.ajax({
+          type: "GET",
+          url: actionUrl,
+          data: vdata1,
+          crossDomain: true,
+          dataType: 'json',
+          success: function(data)
+          {
+            processInfo1(data.message);
+          }}), 
+        $.ajax({
+          type: "GET",
+          url: actionUrl,
+          data: vdata2,
+          crossDomain: true,
+          dataType: 'json',
+          success: function(data)
+          {
+            processInfo2(data.message);
+          }})).done(function(a1, a2, a3, a4){
+        compareScenarios();
+      });
+  });
+});
+</script>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
