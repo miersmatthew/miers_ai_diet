@@ -311,8 +311,6 @@ function getRandomWord() {
     "url": "https://wordsapiv1.p.rapidapi.com/words/?letterPattern=%5E%5Ba-z%5D%7B4%2C10%7D%24&hasDetails=synonyms%2Cantonyms%2Cdefinitions%2Cexamples&random=true",
     "method": "GET",
     "headers": {
-      "X-RapidAPI-Key": "84abbd7514msha5595d42b7db3acp1c12dbjsn45aa7afe43e8",
-      "X-RapidAPI-Host": "wordsapiv1.p.rapidapi.com"
     }
   };
   
